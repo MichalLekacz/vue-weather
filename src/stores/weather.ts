@@ -76,10 +76,20 @@ export const useWeatherStore = defineStore('weather', {
     // 🔹 Pobiera sugestie miast na podstawie zapytania użytkownika
     async fetchCitySuggestions(query: string) {
       try {
+        // Walidacja zapytania - unikamy pustych lub za krótkich wyszukiwań
+        if (!query || query.length < 2) {
+          return []; // Zwróć pustą tablicę, jeśli zapytanie jest zbyt krótkie
+        }
+    
         const response = await axios.get(`${BASE_URL}/find`, {
           params: { q: query, appid: API_KEY, units: 'metric' }
         });
-
+    
+        // Sprawdzamy, czy odpowiedź zawiera listę miast
+        if (!response.data || !response.data.list) {
+          return []; // Jeśli brak poprawnych danych, zwracamy pustą tablicę
+        }
+    
         return response.data.list.map((city: any) => ({
           id: city.id,
           name: city.name,
@@ -87,7 +97,7 @@ export const useWeatherStore = defineStore('weather', {
         }));
       } catch (error) {
         console.error('Błąd pobierania sugestii miast:', error);
-        return [];
+        return []; // W przypadku błędu API zwracamy pustą tablicę, aby uniknąć problemów
       }
     },
 
