@@ -9,6 +9,7 @@ Aplikacja pogodowa w Vue 3 z TypeScript, pozwala na wyszukiwanie miast, dodawani
    ```bash
    git clone https://github.com/twoje-repozytorium/vue-weather.git
    cd vue-weather
+   
 Zainstaluj zależności:
 
 bash

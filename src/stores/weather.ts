@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 
-const API_KEY = '8d1d4136c7391bd211260615a3dde62d';
+const API_KEY = import.meta.env.VITE_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 interface WeatherData {
@@ -25,11 +25,11 @@ interface ForecastData {
 export const useWeatherStore = defineStore('weather', {
   state: () => ({
     selectedCities: [] as City[],
-    forecastData: [] as ForecastData[], // Zmienna do przechowywania prognozy
+    forecastData: [] as ForecastData[],
   }),
 
   actions: {
-    // Pobiera dane pogodowe dla wybranego miasta
+    // 🔹 Pobiera dane pogodowe dla wybranego miasta
     async fetchWeather(cityName: string) {
       try {
         const response = await axios.get(`${BASE_URL}/weather`, {
@@ -46,7 +46,6 @@ export const useWeatherStore = defineStore('weather', {
           }
         };
 
-        // Zapobiega dodaniu duplikatu miasta
         if (!this.selectedCities.some(city => city.id === cityData.id)) {
           this.selectedCities.push(cityData);
         }
@@ -55,7 +54,26 @@ export const useWeatherStore = defineStore('weather', {
       }
     },
 
-    // Pobiera sugestie miast na podstawie zapytania użytkownika
+    // 🔹 Pobiera prognozę pogody na kilka godzin
+    async fetchForecast(cityName: string) {
+      try {
+        const response = await axios.get(`${BASE_URL}/forecast`, {
+          params: { q: cityName, appid: API_KEY, units: 'metric' }
+        });
+
+        const forecast = response.data.list.slice(0, 5).map((item: any) => ({
+          time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          temp: item.main.temp,
+          humidity: item.main.humidity,
+        }));
+
+        this.forecastData = forecast;
+      } catch (error) {
+        console.error('Błąd pobierania prognozy pogody:', error);
+      }
+    },
+
+    // 🔹 Pobiera sugestie miast na podstawie zapytania użytkownika
     async fetchCitySuggestions(query: string) {
       try {
         const response = await axios.get(`${BASE_URL}/find`, {
@@ -73,9 +91,14 @@ export const useWeatherStore = defineStore('weather', {
       }
     },
 
-    // Usuwa miasto z listy
+    // 🔹 Usuwa miasto z listy
     removeCity(cityId: number) {
       this.selectedCities = this.selectedCities.filter(city => city.id !== cityId);
+    },
+
+    // 🔹 Resetuje miasta (w celu czyszczenia po wylogowaniu)
+    resetCities() {
+      this.selectedCities = []; // Zresetuj listę miast
     }
   }
 });

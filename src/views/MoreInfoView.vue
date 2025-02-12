@@ -97,7 +97,7 @@
               color: 'rgba(54, 162, 235, 1)',
               font: {
                 weight: 'bold',
-                size: 12,
+                size: 14,
               },
               formatter(value) {
                 return `${Math.round(value)}%`; // Zaokrąglij wilgotność i dodaj jednostkę
@@ -128,15 +128,15 @@
             color: 'black', // Kolor etykiet
             align: 'top', // Pozycjonowanie etykiety nad punktem
             font: {
-              size: 10,
+              size: 14,
               weight: 'bold',
             },
           },
         },
         scales: {
           y: {
-            min: 0,  // Minimalna wartość na osi Y
-            max: 60, // Maksymalna wartość na osi Y
+            min: -40,  // Minimalna wartość na osi Y
+            max: 50, // Maksymalna wartość na osi Y
             ticks: {
               callback(value: number) {
                 return value + '°C'; // Formatowanie temperatury
@@ -151,14 +151,8 @@
         responsive: true,
         plugins: {
           legend: {
-  position: 'top',
-  labels: {
-    font: {
-      size: 24, // Powiększenie czcionki etykiety legendy
-    },
-    color: 'grey', // Możesz też zmienić kolor tekstu
-  },
-},
+            position: 'top',
+          },
           tooltip: {
             mode: 'index',
             intersect: false,
