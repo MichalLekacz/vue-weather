@@ -1,7 +1,7 @@
 # 🌦️ WeatherPulse
 
 **WeatherPulse** to aplikacja webowa umożliwiająca sprawdzanie pogody w wybranych miastach na całym świecie.  
-Została stworzona w **Vue 3**, wykorzystując **Pinia** do zarządzania stanem oraz **OpenWeather API** do pobierania danych pogodowych.
+Została stworzona w **Vue 3**, wykorzystując **Pinia** do zarządzania stanem oraz **OpenWeatherMap API** do pobierania danych pogodowych.
 
 ## Funkcje
 - **Wyszukiwanie miast** – możliwość wyszukiwania miast i dodawania ich do listy obserwowanych.
