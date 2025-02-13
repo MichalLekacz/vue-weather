@@ -73,6 +73,7 @@ const login = () => {
 
 .modal-content {
   background: white;
+  width: 30%;
   padding: 20px;
   border-radius: 8px;
   text-align: center;
