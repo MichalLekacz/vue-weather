@@ -20,8 +20,8 @@ Została stworzona w **Vue 3**, wykorzystując **Pinia** do zarządzania stanem 
 ## Instalacja
 1. **Sklonuj repozytorium**
 ```
-git clone https://github.com/twoj-repo/weather-pulse.git
-cd weather-pulse
+git clone https://github.com/MichalLekacz/vue-weather
+cd vue-weather
 ```
 2. **Zainstaluj zależności**
 ```
