@@ -44,7 +44,7 @@ npm run dev
 
 | Użytkownik            | Hasło                                                                |
 | ----------------- | ------------------------------------------------------------------ |
-| Admin | Admin|
+| admin | admin|
 
 ## API
 Dane pogodowe są pobierane z 
