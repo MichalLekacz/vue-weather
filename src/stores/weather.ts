@@ -16,16 +16,20 @@ interface City {
   weather?: WeatherData;
 }
 
-interface ForecastData {
-  time: string;
-  temp: number;
-  humidity: number;
+interface WeatherHistory {
+  cityId: number;
+  data: {
+    time: string;
+    temp: number;
+    humidity: number;
+  }[];
 }
 
 export const useWeatherStore = defineStore('weather', {
   state: () => ({
     selectedCities: [] as City[],
-    forecastData: [] as ForecastData[],
+    weatherHistory: [] as WeatherHistory[],
+    updateIntervals: {} as Record<number, number>, // Śledzenie interwałów dla poszczególnych miast
   }),
 
   actions: {
@@ -36,58 +40,62 @@ export const useWeatherStore = defineStore('weather', {
           params: { q: cityName, appid: API_KEY, units: 'metric' }
         });
 
+        const weather: WeatherData = {
+          temp: response.data.main.temp,
+          humidity: response.data.main.humidity,
+          icon: response.data.weather[0].icon
+        };
+
         const cityData: City = {
           id: response.data.id,
           name: response.data.name,
-          weather: {
-            temp: response.data.main.temp,
-            humidity: response.data.main.humidity,
-            icon: response.data.weather[0].icon
-          }
+          weather
         };
 
+        // Dodaj miasto do listy, jeśli jeszcze go nie ma
         if (!this.selectedCities.some(city => city.id === cityData.id)) {
           this.selectedCities.push(cityData);
+          this.weatherHistory.push({
+            cityId: cityData.id,
+            data: []
+          });
+          // Rozpocznij automatyczne aktualizacje dla nowego miasta
+          this.startWeatherUpdates(cityData.id, cityData.name);
+        }
+
+        // Aktualizuj dane istniejącego miasta
+        const existingCity = this.selectedCities.find(city => city.id === cityData.id);
+        if (existingCity) {
+          existingCity.weather = weather;
+        }
+
+        // Dodaj nowy punkt danych do historii
+        const cityHistory = this.weatherHistory.find(h => h.cityId === cityData.id);
+        if (cityHistory) {
+          cityHistory.data.push({
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            temp: weather.temp,
+            humidity: weather.humidity
+          });
         }
       } catch (error) {
         console.error('Błąd pobierania pogody:', error);
       }
     },
 
-    // 🔹 Pobiera prognozę pogody na kilka godzin
-    async fetchForecast(cityName: string) {
-      try {
-        const response = await axios.get(`${BASE_URL}/forecast`, {
-          params: { q: cityName, appid: API_KEY, units: 'metric' }
-        });
-
-        const forecast = response.data.list.slice(0, 5).map((item: any) => ({
-          time: new Date(item.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          temp: item.main.temp,
-          humidity: item.main.humidity,
-        }));
-
-        this.forecastData = forecast;
-      } catch (error) {
-        console.error('Błąd pobierania prognozy pogody:', error);
-      }
-    },
-
     // 🔹 Pobiera sugestie miast na podstawie zapytania użytkownika
     async fetchCitySuggestions(query: string) {
       try {
-        // Walidacja zapytania - unikamy pustych lub za krótkich wyszukiwań
         if (!query || query.length < 2) {
-          return []; // Zwróć pustą tablicę, jeśli zapytanie jest zbyt krótkie
+          return []; // Zapytanie zbyt krótkie
         }
     
         const response = await axios.get(`${BASE_URL}/find`, {
           params: { q: query, appid: API_KEY, units: 'metric' }
         });
     
-        // Sprawdzamy, czy odpowiedź zawiera listę miast
         if (!response.data || !response.data.list) {
-          return []; // Jeśli brak poprawnych danych, zwracamy pustą tablicę
+          return [];
         }
     
         return response.data.list.map((city: any) => ({
@@ -97,18 +105,51 @@ export const useWeatherStore = defineStore('weather', {
         }));
       } catch (error) {
         console.error('Błąd pobierania sugestii miast:', error);
-        return []; // W przypadku błędu API zwracamy pustą tablicę, aby uniknąć problemów
+        return [];
       }
     },
 
     // 🔹 Usuwa miasto z listy
     removeCity(cityId: number) {
+      this.stopWeatherUpdates(cityId);
       this.selectedCities = this.selectedCities.filter(city => city.id !== cityId);
+      this.weatherHistory = this.weatherHistory.filter(history => history.cityId !== cityId);
     },
 
-    // 🔹 Resetuje miasta (w celu czyszczenia po wylogowaniu)
+    // 🔹 Resetuje miasta (np. po wylogowaniu)
     resetCities() {
-      this.selectedCities = []; // Zresetuj listę miast
+      Object.keys(this.updateIntervals).forEach(cityId => {
+        this.stopWeatherUpdates(Number(cityId));
+      });
+      this.selectedCities = [];
+      this.weatherHistory = [];
+    },
+
+    // 🔹 Rozpoczyna automatyczne aktualizacje pogody
+    startWeatherUpdates(cityId: number, cityName: string) {
+      this.stopWeatherUpdates(cityId);
+      // Ustaw interwał – tutaj aktualizujemy co minutę (60 000 ms)
+      this.updateIntervals[cityId] = window.setInterval(() => {
+        this.fetchWeather(cityName);
+      }, 0.1 * 60 * 1000);
+    },
+
+    // 🔹 Zatrzymuje automatyczne aktualizacje
+    stopWeatherUpdates(cityId: number) {
+      if (this.updateIntervals[cityId]) {
+        clearInterval(this.updateIntervals[cityId]);
+        delete this.updateIntervals[cityId];
+      }
+    },
+
+    // 🔹 Pobiera historię pogody dla miasta
+    getWeatherHistory(cityId: number) {
+      return this.weatherHistory.find(h => h.cityId === cityId)?.data || [];
+    },
+
+    // 🔹 Czyści store przy wylogowaniu
+    resetStore() {
+      this.resetCities();
     }
   }
 });
