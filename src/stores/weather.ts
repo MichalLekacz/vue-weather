@@ -30,6 +30,8 @@ export const useWeatherStore = defineStore('weather', {
     selectedCities: [] as City[],
     weatherHistory: [] as WeatherHistory[],
     updateIntervals: {} as Record<number, number>, // Śledzenie interwałów dla poszczególnych miast
+    lastUpdateTimes: {} as Record<number, number>, // Dodajemy śledzenie czasów ostatniej aktualizacji
+    isInitialized: {} as Record<number, boolean>, // Dodajemy flagę inicjalizacji dla każdego miasta
   }),
 
   actions: {
@@ -63,23 +65,56 @@ export const useWeatherStore = defineStore('weather', {
           this.startWeatherUpdates(cityData.id, cityData.name);
         }
 
-        // Aktualizuj dane istniejącego miasta
+        // Sprawdzamy czy to pierwsze pobranie dla tego miasta
+        if (!this.isInitialized[cityData.id]) {
+          this.isInitialized[cityData.id] = true;
+          this.lastUpdateTimes[cityData.id] = Date.now();
+          // Dodajemy pierwszy punkt
+          this.addHistoryPoint(cityData.id, weather);
+        } else {
+          // Sprawdzamy czy minęło 60 sekund
+          const currentTime = Date.now();
+          const lastUpdate = this.lastUpdateTimes[cityData.id];
+          const timeDiff = currentTime - lastUpdate;
+
+          if (timeDiff >= 60000) { // 60000ms = 1 minuta
+            this.lastUpdateTimes[cityData.id] = currentTime;
+            this.addHistoryPoint(cityData.id, weather);
+          }
+        }
+
+        // Aktualizujemy bieżące dane miasta niezależnie od interwału
         const existingCity = this.selectedCities.find(city => city.id === cityData.id);
         if (existingCity) {
           existingCity.weather = weather;
         }
 
-        // Dodaj nowy punkt danych do historii
-        const cityHistory = this.weatherHistory.find(h => h.cityId === cityData.id);
-        if (cityHistory) {
-          cityHistory.data.push({
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            temp: weather.temp,
-            humidity: weather.humidity
-          });
-        }
       } catch (error) {
         console.error('Błąd pobierania pogody:', error);
+      }
+    },
+
+    // Nowa metoda do dodawania punktu historii
+    addHistoryPoint(cityId: number, weather: WeatherData) {
+      const cityHistory = this.weatherHistory.find(h => h.cityId === cityId);
+      if (cityHistory) {
+        if (cityHistory.data.length >= 100) {
+          cityHistory.data.shift();
+        }
+
+        const date = new Date();
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+
+        cityHistory.data.push({
+          time: date.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit' 
+          }),
+          temp: weather.temp,
+          humidity: weather.humidity
+        });
       }
     },
 
@@ -128,10 +163,12 @@ export const useWeatherStore = defineStore('weather', {
     // 🔹 Rozpoczyna automatyczne aktualizacje pogody
     startWeatherUpdates(cityId: number, cityName: string) {
       this.stopWeatherUpdates(cityId);
-      // Ustaw interwał – tutaj aktualizujemy co minutę (60 000 ms)
+      // Ustawiamy interwał na 60 sekund
       this.updateIntervals[cityId] = window.setInterval(() => {
         this.fetchWeather(cityName);
-      }, 0.1 * 60 * 1000);
+      }, 60000);
+      // Pierwsze pobranie danych
+      this.fetchWeather(cityName);
     },
 
     // 🔹 Zatrzymuje automatyczne aktualizacje

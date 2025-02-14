@@ -26,7 +26,7 @@
   </template>
   
   <script lang="ts">
-  import { defineComponent, ref, watch, computed, onMounted } from 'vue';
+  import { defineComponent, ref, watch, computed, onMounted, nextTick } from 'vue';
   import { useWeatherStore } from '../stores/weather';
   import Header from '../components/Header.vue';
   import { Line } from 'vue-chartjs';
@@ -60,6 +60,7 @@
 	setup(props) {
 	  const store = useWeatherStore();
 	  const router = useRouter();
+	  const dataLoaded = ref(false);
   
 	  // Dane do wykresu temperatury
 	  const chartDataTemperature = ref({
@@ -201,6 +202,7 @@
 		(historyData) => {
 		  if (!historyData || !Array.isArray(historyData)) return;
   
+		  // Aktualizuj wykresy bez względu na liczbę punktów
 		  chartDataTemperature.value = {
 			...chartDataTemperature.value,
 			labels: historyData.map((item) => item.time),
@@ -223,19 +225,25 @@
 			],
 		  };
   
-		  if (tempChartRef.value && tempChartRef.value.chartInstance) {
-			tempChartRef.value.chartInstance.update();
-		  }
-		  if (humidityChartRef.value && humidityChartRef.value.chartInstance) {
-			humidityChartRef.value.chartInstance.update();
-		  }
+		  // Wymuszamy aktualizację wykresów
+		  nextTick(() => {
+			if (tempChartRef.value?.chartInstance) {
+			  tempChartRef.value.chartInstance.update();
+			}
+			if (humidityChartRef.value?.chartInstance) {
+			  humidityChartRef.value.chartInstance.update();
+			}
+		  });
 		},
-		{ deep: true }
+		 { immediate: true, deep: true } // Dodajemy immediate: true
 	  );
   
 	  // Po wejściu do widoku moreinfo wykonaj początkowe zapytanie pobierające dane pogodowe
 	  onMounted(() => {
-		store.fetchWeather(props.cityName);
+		const city = store.selectedCities.find(c => c.name === props.cityName);
+		if (city) {
+		  store.fetchWeather(city.name);
+		}
 	  });
   
 	  // Funkcja powrotu do poprzedniego widoku
@@ -252,6 +260,7 @@
 		goBack,
 		tempChartRef,
 		humidityChartRef,
+		dataLoaded,
 	  };
 	},
   });
@@ -273,4 +282,3 @@
 	color: transparent;
   }
   </style>
-  
