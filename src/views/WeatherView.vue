@@ -28,8 +28,8 @@
     </div>
 
     <!-- Lista miast -->
-    <div class="row gy-4">
-      <div v-for="city in weatherStore.selectedCities" :key="city.id" class="col-md-4">
+    <div class="cities-grid">
+      <div v-for="city in limitedCities" :key="city.id">
         <div class="card text-center p-3 shadow-sm position-relative text-white bg-black bg-opacity-10">
           <!-- Przycisk usuwania miasta -->
           <button 
@@ -55,11 +55,19 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content bg-dark">
+        <h5>Limit osiągnięty</h5>
+        <p>Maksymalna liczba dodanych miast to 10. Usuń niektóre miasta, aby dodać nowe.</p>
+        <button @click="showModal = false" class="btn text-white gradient-bg">Zamknij</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, computed } from 'vue';
 import { useWeatherStore } from '../stores/weather';
 import Header from '../components/Header.vue'; // Zaimportuj komponent Header
 import { useRouter } from 'vue-router'; // Importujemy Vue Router
@@ -74,6 +82,7 @@ export default defineComponent({
     const router = useRouter(); // Inicjalizujemy router
     const cityName = ref('');
     const citySuggestions = ref<{ id: number; name: string; country: string }[]>([]);
+    const showModal = ref(false);
 
     const fetchCitySuggestions = async () => {
       if (!cityName.value) return;
@@ -82,6 +91,10 @@ export default defineComponent({
 
     const selectCity = () => {
       if (!cityName.value) return;
+      if (weatherStore.selectedCities.length >= 10) {
+        showModal.value = true;
+        return;
+      }
       weatherStore.fetchWeather(cityName.value);
       cityName.value = '';
     };
@@ -134,6 +147,10 @@ export default defineComponent({
       weatherStore.removeCity(cityId);
     };
 
+    const limitedCities = computed(() => {
+      return weatherStore.selectedCities.slice(0, 10);
+    });
+
     return {
       cityName,
       citySuggestions,
@@ -143,7 +160,9 @@ export default defineComponent({
       goToMoreInfo,
       getWeatherIcon,
       removeCity,
-      weatherStore
+      weatherStore,
+      limitedCities,
+      showModal
     };
   }
 });
@@ -153,5 +172,50 @@ export default defineComponent({
 .gradient-bg {
   background: linear-gradient(90deg, rgba(255, 204, 0, 1) 0%, rgba(255, 87, 34, 1) 100%);
   border: none;
+}
+
+.cities-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 992px) {
+  .cities-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .cities-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  width: 30%;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 90%;
+  }
 }
 </style>

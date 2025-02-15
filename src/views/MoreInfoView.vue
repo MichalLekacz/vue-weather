@@ -104,7 +104,7 @@
 			  color: 'rgba(54, 162, 235, 1)',
 			  font: {
 				weight: 'bold',
-				size: 14,
+				size: 12,
 			  },
 			  formatter(value: number) {
 				return `${Math.round(value)}%`;
@@ -159,6 +159,12 @@
 		plugins: {
 		  legend: {
 			position: 'top',
+			labels: {
+			  font: {
+				size: 24,
+			  },
+			  color: 'grey',
+			},
 		  },
 		  tooltip: {
 			mode: 'index',
@@ -168,7 +174,7 @@
 			color: 'black',
 			align: 'top',
 			font: {
-			  size: 10,
+			  size: 14,
 			  weight: 'bold',
 			},
 		  },
